@@ -14,12 +14,18 @@ jobs:
         with: { gradle-version: 8.7 }
       - name: Accept SDK licenses
         run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-      - name: Unzip project
-        run: unzip -q HiTechTVOS.zip -d proj
+      - name: Find and unzip project
+        run: |
+          echo "Files in repo:"; ls -la
+          ZIP=$(ls *.zip 2>/dev/null | head -1)
+          if [ -z "$ZIP" ]; then echo "ERROR: no .zip file found in the repo. Upload HiTechTVOS.zip first."; exit 1; fi
+          unzip -q "$ZIP" -d proj
+          DIR=$(dirname "$(find proj -name settings.gradle.kts | head -1)")
+          echo "PROJECT_DIR=$DIR" >> $GITHUB_ENV
       - name: Build
-        working-directory: proj/HiTechTVOS
+        working-directory: ${{ env.PROJECT_DIR }}
         run: gradle assembleDebug --no-daemon --stacktrace
       - uses: actions/upload-artifact@v4
         with:
           name: HiTechTVOS-debug-apk
-          path: proj/HiTechTVOS/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
